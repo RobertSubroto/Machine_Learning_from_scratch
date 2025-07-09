@@ -10,18 +10,18 @@ import NN_backpropagation as nnback
 
 
 
-def C(X, Y, weights):
+def C(X, Y, weights, activation_function):
     total_cost = 0.0
     for x, y in zip(X, Y):
-        a, _ = nnback.feedforward(x, weights)
+        a, _ = nnback.feedforward(x, weights, activation_function)
         total_cost += np.sum((a[-1] - y) ** 2)
     return total_cost / len(X)
 
 
-def gradient_descent(weights, learning_rate, number_of_steps, X, Y):
+def gradient_descent(weights, learning_rate, number_of_steps, X, Y, activation_function):
     weights_min = [W.copy() for W in weights]
     for _ in range(number_of_steps):
-        gradients = nnback.total_differential_matrix_tracker_w(weights_min, X, Y)  # Compute once
+        gradients = nnback.gradient_weights_matrix_form(weights_min, X, Y, activation_function)  # Compute once
         for j in range(len(weights_min)):
             weights_min[j] -= learning_rate * gradients[j]  # Update weights
     return weights_min

@@ -6,14 +6,10 @@ Created on Sun Jul  6 21:44:48 2025
 """
 
 import numpy as np
+import NN_activation_functions as nnact
 
-def relu(z):
-    return np.maximum(0, z)
 
-def relu_derivative(z):
-    return (z > 0).astype(float)
-
-def feedforward(x, weights):
+def feedforward(x, weights, activation_function):
     """
     Perform a full forward pass, caching activations and pre-activations.
 
@@ -30,7 +26,7 @@ def feedforward(x, weights):
     a = x
     for W in weights:
         z = W @ a
-        a = relu(z)
+        a = nnact.activation_function(activation_function, 0)(z)
         zs.append(z)
         activations.append(a)
     return activations, zs
@@ -41,14 +37,14 @@ def dC_da_L(a_L, y):
     """
     return 2 * (a_L - y)
 
-def da_dz(z):
+def da_dz(z, activation_function):
     """
     Derivative of ReLU activation w.r.t. z
     Returns a diagonal matrix
     """
-    return np.diag(relu_derivative(z))
+    return np.diag(nnact.activation_function(activation_function, 1)(z))
 
-def differential_matrix_tracker(weights, x, y):
+def differential_matrix_tracker(weights, x, y, activation_function):
     """
     Tracks the backpropagated gradient vector ∂C/∂z^l at each layer (in reverse) for one input output 
     pair x and y.
@@ -56,16 +52,16 @@ def differential_matrix_tracker(weights, x, y):
     Returns:
     - list of ∂C/∂z^l for l = L to 1
     """
-    activations, zs = feedforward(x, weights)
+    activations, zs = feedforward(x, weights, activation_function)
     L = len(weights)
 
     # Initial: ∂C/∂a^L → ∂C/∂z^L
-    grad = da_dz(zs[-1]) @ dC_da_L(activations[-1], y)
+    grad = da_dz(zs[-1], activation_function) @ dC_da_L(activations[-1], y)
     grads = [grad]
 
     # Backpropagate ∂C/∂z^(l) = da_dz(z^(l)) @ W^(l+1).T @ ∂C/∂z^(l+1)
     for l in reversed(range(1, L)):
-        dz = da_dz(zs[l-1])
+        dz = da_dz(zs[l-1], activation_function)
         W_next = weights[l]
         grad = dz @ W_next.T @ grads[-1]
         grads.append(grad)
@@ -73,7 +69,7 @@ def differential_matrix_tracker(weights, x, y):
     grads.reverse()  # So grads[0] = ∂C/∂z^1, ..., grads[-1] = ∂C/∂z^L
     return grads
 
-def total_differential_matrix_tracker_weights(weights, X, Y):
+def gradient_weights_matrix_form(weights, X, Y, activation_function):
     """
     Accumulates the total weight gradients ∂C/∂W^l over the dataset.
 
@@ -83,8 +79,8 @@ def total_differential_matrix_tracker_weights(weights, X, Y):
     total_grads = [np.zeros_like(W) for W in weights]
 
     for i in range(X.shape[0]):
-        grads = differential_matrix_tracker(weights, X[i], Y[i])  # ∂C/∂z for each layer
-        activations, zs = feedforward(X[i], weights)              # lists of activations and pre-activations
+        grads = differential_matrix_tracker(weights, X[i], Y[i], activation_function)  # ∂C/∂z for each layer
+        activations, zs = feedforward(X[i], weights, activation_function)              # lists of activations and pre-activations
         
         for l in range(len(weights)):
             delta = grads[l][:, None]           # (n_out, 1) column vector
