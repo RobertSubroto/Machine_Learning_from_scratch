@@ -10,12 +10,10 @@ import NN_backpropagation as nnback
 
 
 
-def C(X, Y, weights, activation_function):
-    total_cost = 0.0
-    for x, y in zip(X, Y):
-        a, _ = nnback.feedforward(x, weights, activation_function)
-        total_cost += np.sum((a[-1] - y) ** 2)
-    return total_cost / len(X)
+def cost(X, Y, weights, activation_function):
+    predictions = np.array([nnback.feedforward(x, weights, activation_function)[0][-1] for x in X])
+    return np.mean(np.sum((predictions - Y)**2, axis=1))  # MSE across all rows
+
 
 
 def gradient_descent(weights, learning_rate, number_of_steps, X, Y, activation_function):
